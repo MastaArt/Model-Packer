@@ -2,7 +2,7 @@
 [INFO] 
 
 NAME = Model Packer
-VERSION = 1.0.0
+VERSION = 1.0.1
 AUTHOR = Vasily Lukyanenko
 DEV = 3DGROUND
 CUSTOMER = Sergey Pak
@@ -18,6 +18,10 @@ ICON=#("PhysX_Main", 30)
 [1.0.0]
 
 * First release =
+
+[1.0.1]
+
++ Added: PBR Convertor=
 
 [ABOUT]
 
@@ -40,7 +44,11 @@ global szGoodChars = szChars + "&$%#()!_+ "
 global BitmapTypes = #(Bitmaptexture, CoronaBitmap)
 
 global sModelName = ""
+global sModelTags = ""
 global _SAVEPATH = @"C:\temp\Model Packer\"
+
+global _VRAY_PBR_GAMMA = 2.2
+global _CORONA_PBR_GAMMA = 4.4
 
  fn useSettings k p w =
 (
@@ -384,6 +392,127 @@ fn getGamma =
 	return IDisplayGamma.gamma as string
 )
 
+fn ConvertToPBR = 
+(
+	IDisplayGamma.colorCorrectionMode = #gamma
+	IDisplayGamma.gamma = 2.2
+	
+	r = getCurrRender()
+	if(r[2] == "VRay") do
+	(
+		for m in getClassInstances VRayMtl do
+		(
+			g = m.texmap_reflectionGlossiness
+			f = m.texmap_reflectionIOR
+			
+			if(g != undefined and not (classOf g == ColorCorrection and g.gammaRGB == _VRAY_PBR_GAMMA)) do
+			(
+				c = ColorCorrection()
+				c.gammaRGB = _VRAY_PBR_GAMMA
+				c.map = g
+				c.lightnessMode = 1
+				c.name = "PBR"
+				
+				m.texmap_reflectionGlossiness = c
+			)
+			
+			if(f != undefined and not (classOf f == ColorCorrection and f.gammaRGB == _VRAY_PBR_GAMMA)) do
+			(				
+				c = ColorCorrection()
+				c.gammaRGB = _VRAY_PBR_GAMMA
+				c.map = f
+				c.lightnessMode = 1
+				c.name = "PBR"
+				
+				m.texmap_reflectionIOR = c
+			)		
+		)
+	)
+
+	if(r[2] == "Corona") do
+	(
+		for m in getClassInstances CoronaMtl do
+		(
+			g = m.texmapReflectGlossiness
+			f = m.texmapFresnelIor
+			
+			if(g != undefined and not (classOf g == ColorCorrection and g.gammaRGB == _CORONA_PBR_GAMMA)) do
+			(
+				c = ColorCorrection()
+				c.gammaRGB = _CORONA_PBR_GAMMA
+				c.map = g
+				c.lightnessMode = 1
+				c.name = "PBR"
+				
+				m.texmapReflectGlossiness = c
+			)
+			
+			if(f != undefined and not (classOf f == ColorCorrection and f.gammaRGB == _CORONA_PBR_GAMMA)) do
+			(				
+				c = ColorCorrection()
+				c.gammaRGB = _CORONA_PBR_GAMMA
+				c.map = f
+				c.lightnessMode = 1
+				c.name = "PBR"
+				
+				m.texmapFresnelIor = c
+			)		
+		)
+	)	
+)
+
+fn isMaterialsPBR = 
+(
+	votes = #()
+	
+	r = getCurrRender()
+	if(r[2] == "VRay") do
+	(
+		for m in getClassInstances VRayMtl do
+		(
+			g = m.texmap_reflectionGlossiness
+			f = m.texmap_reflectionIOR
+			if(
+				(classOf g == ColorCorrection and 
+				g.gammaRGB == 2.2) or
+				(classOf f == ColorCorrection and
+				f.gammaRGB == 2.2)
+			) then 
+			(
+				appendIfUnique votes true
+			) else
+			(
+				appendIfUnique votes false
+			)
+		)
+	)
+	
+	if(r[2] == "Corona") do
+	(
+		for m in getClassInstances CoronaMtl do
+		(
+			g = m.texmapReflectGlossiness
+			f = m.texmapFresnelIor
+			if(
+				(classOf g == ColorCorrection and 
+				g.gammaRGB == 4.4) or
+				(classOf f == ColorCorrection and
+				f.gammaRGB == 4.4)
+			) then 
+			(
+				appendIfUnique votes true
+			) else
+			(
+				appendIfUnique votes false
+			)
+		)
+	)
+	
+	if(votes.count == 1 and votes[1] == true) do return true
+	if(votes.count == 1 and votes[1] == false) do return false
+	if(votes.count == 2) do return #error
+)
+
 fn getNum n c:3 =
 (
 	n = n as string
@@ -447,16 +576,21 @@ rollout _STEP1 "Model Packer"
 	dotNetControl lblWarn1 "System.Windows.Forms.Label" text: "*" offset: [-59, 0] width: 10	
 	dotNetControl edtModelName "System.Windows.Forms.TextBox" height: 25 tabstop: true
 	
+	label lbl2 "Tags:" align: #left across: 2  	
+	dotNetControl lblWarn2 "System.Windows.Forms.Label" text: "*" offset: [-95, 0] width: 10	
+	dotNetControl edtModelTags "System.Windows.Forms.TextBox" height: 25 tabstop: true
+	
 	group "Settings"
 	(
 		checkbox cbxCreateZip "Create ZIP" checked: true
 	)
 	button btnExport "Export" width: 244 height: 45 align: #left across: 2
 	dotnetcontrol warnMsg "System.Windows.Forms.Button" height:0 width:0 offset: [0, 25]
+	checkbox cbxConvertPBR "Convert to PBR" 
 	
 	fn initDotNet = 
 	(
-		warnLabels = #(lblWarn1)
+		warnLabels = #(lblWarn1, lblWarn2)
 		bg = getBgColor()
 		txt = getTextColor()
 				
@@ -676,7 +810,7 @@ rollout _STEP1 "Model Packer"
 	
 	fn createInfo szDir =
 	(
-		f = szDir + "info.ini"
+		f = szDir + "info.txt"
 		v = getMaxVersion()
 		r = getCurrRender()
 		p = polyCount geometry
@@ -684,12 +818,13 @@ rollout _STEP1 "Model Packer"
 		u = getUnits()
 								
 		setIniInfo f "INFO" "TYPE" "model" 
-		setIniInfo f "INFO" "NAME" sModelName 
+		setIniInfo f "INFO" "NAME" sModelName 		
 		setIniInfo f "INFO" "FORMAT" v[1] 
 		setIniInfo f "INFO" "RENDER" r[2] 
 		setIniInfo f "INFO" "POLYS" p 
 		setIniInfo f "INFO" "UNITS" u 
 		setIniInfo f "INFO" "DIMENSION" d 	
+		setIniInfo f "INFO" "TAGS" sModelTags 
 	)
 	
 	on _STEP1 open do
@@ -700,7 +835,10 @@ rollout _STEP1 "Model Packer"
 	on btnExport pressed do
 	(
 		sModelName = edtModelName.text
+		sModelTags = edtModelTags.text
+		
 		if(sModelName.count == 0) do return showTooltip edtModelName "Please enter correct model name!"
+		if(sModelTags.count == 0) do return showTooltip edtModelTags "Please enter few tags!"
 		if(not isValidText sModelName edtModelName) do return false 
 		if(not isSelected()) do return showTooltip warnMsg "Please select model!"
 					
@@ -717,7 +855,8 @@ rollout _STEP1 "Model Packer"
 		szName = stripName sModelName
 
 		_gamma = getGamma()
-		szOutName = szName + "_gamma" + _gamma + r[1]
+		szOutName = szName + "_Gamma" + _gamma + r[1]
+		szOutNamePBR = szName + "_PBR_Gamma" + _gamma + r[1]
 
 		szDir = _SAVEPATH + szName + @"\"		
 		szMaps = szDir + @"maps\"
@@ -740,8 +879,9 @@ rollout _STEP1 "Model Packer"
 		szFBX = szExport + szOutName + ".fbx"
 		szOBJ = szExport + szOutName + ".obj"
 		szMAX = szDir + szOutName + ".max"
+		szMAXPBR = szDir + szOutNamePBR + ".max"
 		szMTL = szDir + szOutName + ".mtl"
-		print szMTL
+		
 		if(checkTexturesError()) do return false
 
 		-- Copy maps		
@@ -774,6 +914,10 @@ rollout _STEP1 "Model Packer"
 		
 		try(renderers.current = currentRender)catch()
 		
+		
+		-- Check PBR
+		isPBR = isMaterialsPBR()
+		
 		-- Attach to one object and place to center
 		geometryFix()
 		
@@ -785,24 +929,37 @@ rollout _STEP1 "Model Packer"
 		renameObjects szName
 		renameMaterials szName 
 		removeLayers()
-				
-		saveMaxFile szMAX saveAsVersion:(v[1] as integer) quiet:true
+			
+		maxFile = szMAX
+		
+		maxFile = case isPBR of
+		(
+			default: szMAX
+			true: szMAXPBR
+		)
+		
+		saveMaxFile maxFile saveAsVersion:(v[1] as integer) quiet:true
 		
 		saveMtlLib szMatLib	
 				
 		ungroupRecursive objects
 		FBXExporterSetParam "FileVersion" "FBX201200"	-- Warning!! This option important!!		
-		exportFile szFBX #noPrompt  --selectedOnly:true
-				
+		exportFile szFBX #noPrompt  --selectedOnly:true				
 		exportFile szOBJ #noPrompt 
 		
 		-- Move MTL to maps folder
 		copyFile szMTL (szMaps + szOutName + ".mtl")
 		deleteFile szMTL
-		
-		
+				
 		deleteFile szZip
-		
+				
+		-- PBR
+		if((isPBR == false or _gamma == "1.0") and cbxConvertPBR.checked) do
+		(
+			ConvertToPBR()
+			saveMaxFile szMAXPBR saveAsVersion:(v[1] as integer) quiet:true
+		)
+				
 		-- Zip maps
 		zipper = zip()
 		zipper.packFiles source: szMaps target: szDir name: "maps" del: true
