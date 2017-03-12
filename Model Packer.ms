@@ -2,7 +2,7 @@
 [INFO] 
 
 NAME = Model Packer
-VERSION = 1.0.1
+VERSION = 1.0.2
 AUTHOR = Vasily Lukyanenko
 DEV = 3DGROUND
 CUSTOMER = Sergey Pak
@@ -22,6 +22,10 @@ ICON=#("PhysX_Main", 30)
 [1.0.1]
 
 + Added: PBR Convertor=
+
+[1.0.2]
+
+* Changed: PBR conversion conditions
 
 [ABOUT]
 
@@ -897,6 +901,11 @@ rollout _STEP1 "Model Packer"
 		DisplayType = units.DisplayType	
 		MetricType = units.MetricType
 		
+		-- Save Gamma
+		colorCorrectionMode = IDisplayGamma.colorCorrectionMode
+		displGamma = IDisplayGamma.gamma 
+		
+		
 		saveNodes _selection (szDir + "_tmp.max") quiet:true
 		resetMaxFile #noPrompt
 		try(
@@ -905,6 +914,9 @@ rollout _STEP1 "Model Packer"
 			units.DisplayType	= DisplayType
 			units.MetricType = MetricType
 		)catch()
+		
+		IDisplayGamma.colorCorrectionMode = colorCorrectionMode 
+		IDisplayGamma.gamma = displGamma
 		
 		-- Delete objects from default scene
 		try(for o in objects where isValidNode o do delete o)catch()
@@ -932,13 +944,13 @@ rollout _STEP1 "Model Packer"
 			
 		maxFile = szMAX
 		
-		maxFile = case isPBR of
+		/*maxFile = case isPBR of
 		(
 			default: szMAX
 			true: szMAXPBR
-		)
+		)*/
 		
-		saveMaxFile maxFile saveAsVersion:(v[1] as integer) quiet:true
+		saveMaxFile szMAX saveAsVersion:(v[1] as integer) quiet:true
 		
 		saveMtlLib szMatLib	
 				
@@ -954,7 +966,7 @@ rollout _STEP1 "Model Packer"
 		deleteFile szZip
 				
 		-- PBR
-		if((isPBR == false or _gamma == "1.0") and cbxConvertPBR.checked) do
+		if(_gamma == "1.0" and cbxConvertPBR.checked) do
 		(
 			ConvertToPBR()
 			saveMaxFile szMAXPBR saveAsVersion:(v[1] as integer) quiet:true
