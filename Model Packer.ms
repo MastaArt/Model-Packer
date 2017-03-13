@@ -2,7 +2,7 @@
 [INFO] 
 
 NAME = Model Packer
-VERSION = 1.0.2
+VERSION = 1.0.3
 AUTHOR = Vasily Lukyanenko
 DEV = 3DGROUND
 CUSTOMER = Sergey Pak
@@ -26,6 +26,10 @@ ICON=#("PhysX_Main", 30)
 [1.0.2]
 
 * Changed: PBR conversion conditions
+
+[1.0.3]
+
+- BugFix: Gamma 1.0 in name after conversion
 
 [ABOUT]
 
@@ -860,7 +864,7 @@ rollout _STEP1 "Model Packer"
 
 		_gamma = getGamma()
 		szOutName = szName + "_Gamma" + _gamma + r[1]
-		szOutNamePBR = szName + "_PBR_Gamma" + _gamma + r[1]
+		szOutNamePBR = szName + "_PBR_Gamma2.2" + r[1]
 
 		szDir = _SAVEPATH + szName + @"\"		
 		szMaps = szDir + @"maps\"
