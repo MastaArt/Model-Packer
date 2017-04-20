@@ -2,10 +2,11 @@
 [INFO] 
 
 NAME = Model Packer
-VERSION = 1.0.3
+VERSION = 1.0.4
 AUTHOR = Vasily Lukyanenko
 DEV = 3DGROUND
 CUSTOMER = Sergey Pak
+SKYPE = ssearsh
 HELP = 
 
 [INSTALL]
@@ -25,11 +26,16 @@ ICON=#("PhysX_Main", 30)
 
 [1.0.2]
 
-* Changed: PBR conversion conditions
+* Changed: PBR conversion conditions=
 
 [1.0.3]
 
-- BugFix: Gamma 1.0 in name after conversion
+- BugFix: Gamma 1.0 in name after conversion=
+
+[1.0.4]
+
++ Added: Description field=
++ Added: Custom Attribute field=
 
 [ABOUT]
 
@@ -42,7 +48,7 @@ This script helps to prepare model for internal library=
 
 
 try(closeRolloutFloater rModelPacker)catch()
-global rModelPacker = newRolloutFloater "Model Packer" 280 320
+global rModelPacker = newRolloutFloater "Model Packer" 280 600
 
 global _STEP1
 
@@ -53,6 +59,9 @@ global BitmapTypes = #(Bitmaptexture, CoronaBitmap)
 
 global sModelName = ""
 global sModelTags = ""
+global sModelDesc = ""
+global sModelCustom1 = ""
+
 global _SAVEPATH = @"C:\temp\Model Packer\"
 
 global _VRAY_PBR_GAMMA = 2.2
@@ -588,17 +597,25 @@ rollout _STEP1 "Model Packer"
 	dotNetControl lblWarn2 "System.Windows.Forms.Label" text: "*" offset: [-95, 0] width: 10	
 	dotNetControl edtModelTags "System.Windows.Forms.TextBox" height: 25 tabstop: true
 	
+	label lbl3 "Description:" align: #left across: 2  	
+	dotNetControl lblWarn3 "System.Windows.Forms.Label" text: "*" offset: [-65, 0] width: 10	
+	dotNetControl edtModelDesc "System.Windows.Forms.TextBox"  height: 200
+	
+	label lbl4 "Custom Attribute:" align: #left		
+	dotNetControl edtModelCustom1 "System.Windows.Forms.TextBox" height: 25 tabstop: true
+	
 	group "Settings"
 	(
 		checkbox cbxCreateZip "Create ZIP" checked: true
 	)
+	
 	button btnExport "Export" width: 244 height: 45 align: #left across: 2
 	dotnetcontrol warnMsg "System.Windows.Forms.Button" height:0 width:0 offset: [0, 25]
 	checkbox cbxConvertPBR "Convert to PBR" 
 	
 	fn initDotNet = 
 	(
-		warnLabels = #(lblWarn1, lblWarn2)
+		warnLabels = #(lblWarn1, lblWarn2, lblWarn3)
 		bg = getBgColor()
 		txt = getTextColor()
 				
@@ -606,7 +623,22 @@ rollout _STEP1 "Model Packer"
 		(
 			i.backColor = bg
 			i.foreColor = i.foreColor.red
-		)				
+		)		
+
+		edtModelDesc.MultiLine = true
+		edtModelDesc.scrollbars = (dotnetclass "System.Windows.Forms.ScrollBars").vertical		
+		edtModelDesc.acceptsReturn = true
+		edtModelDesc.acceptsTab = true
+		edtModelDesc.wordWrap = true		
+	)
+	
+	on edtModelDesc keyPress s a do
+	(
+		if(a.keyChar == "\r") do 
+		(
+			edtModelDesc.text += "\r\n"
+			edtModelDesc.SelectionStart = (edtModelDesc.text.count)
+		)
 	)
 	
 	fn checkTexturesError =
@@ -796,6 +828,8 @@ rollout _STEP1 "Model Packer"
 	(	
 		-- Set correct ini setting for PHP
 		v = substituteString v "\"" "'"
+		v = substituteString v "\r\n" "\\r\\n"
+		
 		setIniSetting f s k ("\"" + v + "\"") 
 	)
 	
@@ -824,7 +858,7 @@ rollout _STEP1 "Model Packer"
 		p = polyCount geometry
 		d = getDim geometry
 		u = getUnits()
-								
+							
 		setIniInfo f "INFO" "TYPE" "model" 
 		setIniInfo f "INFO" "NAME" sModelName 		
 		setIniInfo f "INFO" "FORMAT" v[1] 
@@ -833,6 +867,8 @@ rollout _STEP1 "Model Packer"
 		setIniInfo f "INFO" "UNITS" u 
 		setIniInfo f "INFO" "DIMENSION" d 	
 		setIniInfo f "INFO" "TAGS" sModelTags 
+		setIniInfo f "INFO" "CUSTOM1" sModelCustom1 
+		setIniInfo f "INFO" "DESC" sModelDesc 
 	)
 	
 	on _STEP1 open do
@@ -844,9 +880,13 @@ rollout _STEP1 "Model Packer"
 	(
 		sModelName = edtModelName.text
 		sModelTags = edtModelTags.text
+		sModelDesc = edtModelDesc.text
+		sModelCustom1 = edtModelCustom1.text
 		
 		if(sModelName.count == 0) do return showTooltip edtModelName "Please enter correct model name!"
 		if(sModelTags.count == 0) do return showTooltip edtModelTags "Please enter few tags!"
+		if(sModelDesc.count == 0) do return showTooltip edtModelDesc "Please fill description!"
+		
 		if(not isValidText sModelName edtModelName) do return false 
 		if(not isSelected()) do return showTooltip warnMsg "Please select model!"
 					
@@ -1003,6 +1043,9 @@ rollout _rAbout "About"
 	
 	label lblAuthor "" height: 30
 	label lblCopy ""  height: 30
+	
+	local c = color 200 200 200 
+	hyperLink href1 "http://3dground.net/" address: "http://3dground.net/" align: #center hoverColor: c visitedColor: c offset: [0, 20]
 	
 	on _rAbout open do
 	(		
