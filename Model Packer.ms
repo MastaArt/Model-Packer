@@ -2,7 +2,7 @@
 [INFO] 
 
 NAME = Model Packer
-VERSION = 1.0.4
+VERSION = 1.0.5
 AUTHOR = Vasily Lukyanenko
 DEV = 3DGROUND
 CUSTOMER = Sergey Pak
@@ -36,6 +36,11 @@ ICON=#("PhysX_Main", 30)
 
 + Added: Description field=
 + Added: Custom Attribute field=
+
+[1.0.5]
+
+- BugFix: CenterPivot crash for non geometry class=
+* Changed: Removed About rollout=
 
 [ABOUT]
 
@@ -363,8 +368,8 @@ fn AttachObj o =
 		)
 	)
 
-	CenterPivot x[1]
-	x[1].wirecolor = gray
+	try(CenterPivot x[1])catch()
+	try(x[1].wirecolor = gray)catch()
 	
 	return x[1]
 )
@@ -845,9 +850,9 @@ rollout _STEP1 "Model Packer"
 		
 		o = AttachObj objects
 		
-		setPivot zpos:o.min.z
+		setPivot zpos:objects.min.z
 		
-		o.pos = [0, 0, 0]
+		if(o != undefined) do o.pos = [0, 0, 0]
 	)
 	
 	fn createInfo szDir =
@@ -1059,4 +1064,4 @@ rollout _rAbout "About"
 )
 
 addRollout _STEP1 rModelPacker 
-addRollout _rAbout rModelPacker rolledUp:true 
+--addRollout _rAbout rModelPacker rolledUp:true 
