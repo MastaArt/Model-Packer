@@ -2,7 +2,7 @@
 [INFO] 
 
 NAME = Model Packer
-VERSION = 1.0.5
+VERSION = 1.0.6
 AUTHOR = Vasily Lukyanenko
 DEV = 3DGROUND
 CUSTOMER = Sergey Pak
@@ -42,6 +42,10 @@ ICON=#("PhysX_Main", 30)
 - BugFix: CenterPivot crash for non geometry class=
 * Changed: Removed About rollout=
 
+[1.0.6]
+
++ Added: Save Model Path option=
+
 [ABOUT]
 
 This script helps to prepare model for internal library=
@@ -53,12 +57,13 @@ This script helps to prepare model for internal library=
 
 
 try(closeRolloutFloater rModelPacker)catch()
-global rModelPacker = newRolloutFloater "Model Packer" 280 600
+global rModelPacker = newRolloutFloater "Model Packer" 280 605
 
 global _STEP1
 
 global szChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890-"
 global szGoodChars = szChars + "&$%#()!_+ "
+global szGoodCharsPath = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz \\;:1234567890!@#$%^&*()_+~'.,[]{}" 
 
 global BitmapTypes = #(Bitmaptexture, CoronaBitmap)
 
@@ -612,11 +617,18 @@ rollout _STEP1 "Model Packer"
 	group "Settings"
 	(
 		checkbox cbxCreateZip "Create ZIP" checked: true
+		checkbox cbxConvertPBR "Convert to PBR" 
+	)
+	
+	group "Save Model To"
+	(
+		edittext edtSaveToPath "" height: 25 readOnly: true
+		button btnSaveToPath "Select Path"
 	)
 	
 	button btnExport "Export" width: 244 height: 45 align: #left across: 2
 	dotnetcontrol warnMsg "System.Windows.Forms.Button" height:0 width:0 offset: [0, 25]
-	checkbox cbxConvertPBR "Convert to PBR" 
+	
 	
 	fn initDotNet = 
 	(
@@ -879,6 +891,29 @@ rollout _STEP1 "Model Packer"
 	on _STEP1 open do
 	(	
 		initDotNet()
+		
+		n = useSettings "SAVETO" "string" "r"
+		r = FilterString n szGoodCharsPath
+		
+		if(n != "" and n != undefined and r.count == 0) do _SAVEPATH = n
+			
+		edtSaveToPath.text = _SAVEPATH
+	)
+	
+	on btnSaveToPath pressed do
+	(
+		f = getSavePath  caption: "Select Path" initialDir: _SAVEPATH
+		
+		if(f != undefined) do
+		(
+			p = FilterString f szGoodCharsPath
+			if(p.count > 0) do return messageBox "The paths are not supported by cyrillic characters!\nPlease choose another path!" title: "Warning!"
+			
+			_SAVEPATH = f + "\\"
+			edtSaveToPath.text = _SAVEPATH
+									
+			useSettings "SAVETO" _SAVEPATH "w"
+		)
 	)
 	
 	on btnExport pressed do
