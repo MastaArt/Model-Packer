@@ -2,7 +2,7 @@
 [INFO] 
 
 NAME = Model Packer
-VERSION = 1.0.6
+VERSION = 1.0.7
 AUTHOR = Vasily Lukyanenko
 DEV = 3DGROUND
 CUSTOMER = Sergey Pak
@@ -46,6 +46,10 @@ ICON=#("PhysX_Main", 30)
 
 + Added: Save Model Path option=
 
+[1.0.7]
+
++ Added: Attach Geometry option=
+
 [ABOUT]
 
 This script helps to prepare model for internal library=
@@ -57,7 +61,7 @@ This script helps to prepare model for internal library=
 
 
 try(closeRolloutFloater rModelPacker)catch()
-global rModelPacker = newRolloutFloater "Model Packer" 280 605
+global rModelPacker = newRolloutFloater "Model Packer" 280 635
 
 global _STEP1
 
@@ -618,6 +622,7 @@ rollout _STEP1 "Model Packer"
 	(
 		checkbox cbxCreateZip "Create ZIP" checked: true
 		checkbox cbxConvertPBR "Convert to PBR" 
+		checkbox cbxAttachGeometry "Attach Geometry" checked: true
 	)
 	
 	group "Save Model To"
@@ -854,14 +859,17 @@ rollout _STEP1 "Model Packer"
 	(
 		ungroupRecursive objects
 		
+		
 		for i in objects where superClassOf i == GeometryClass do
 		(			
 			ResetXForm i
 			convertToPoly i
 		)
 		
-		o = AttachObj objects
+		o = objects
 		
+		if(cbxAttachGeometry.checked) do o = AttachObj objects
+				
 		setPivot zpos:objects.min.z
 		
 		if(o != undefined) do o.pos = [0, 0, 0]
